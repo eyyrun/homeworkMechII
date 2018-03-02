@@ -1,0 +1,32 @@
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include "UART.h"
+
+int main()
+{
+	Init_UART();
+	int adc_value;
+	DDRB |= (1 << PB5); //port B pin 5 as output
+	//choose vref as 5V and single ended ADC0 input (presume 0x00 after reset):
+	ADMUX = (1 << REFS0);
+	//ADCSRB untouched as it is default in free-running-mode after reset
+	// power on ADC, activate free running mode, start converting, 128 prescaler (->125kHz)
+	ADCSRA |= (1<<ADEN)|(1<<ADATE)|(1<<ADSC)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+	char string[16];
+	for(;;) 
+	{
+		adc_value = ADCW; //read adc occasionally and expect fresh value
+		UART_itoa(adc_value, string);
+		UART_Transmit_String(string);
+		UART_Transmit('\r\n');
+ 		if(adc_value > 512)
+		{
+			PORTB |= (1<<PB5);
+		}
+		else
+		{
+			PORTB &= ~(1<<PB5);
+		}
+	}
+}
